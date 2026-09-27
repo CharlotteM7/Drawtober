@@ -1,6 +1,23 @@
 (() => {
 /* ---------- constants ---------- */
-const now0 = new Date();
+/* ---------- test mode ----------
+   Add ?date=2026-10-01 to the page address to pretend it's that day.
+   Test mode keeps its own save (separate from your real game) and cloud sync is off. */
+const TEST_DATE = (() => {
+  const v = new URLSearchParams(location.search).get("date");
+  if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+  const [y, m, d] = v.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.getMonth() === m - 1 ? dt : null;
+})();
+function clock(){
+  if (!TEST_DATE) return new Date();
+  const n = new Date(), t = new Date(TEST_DATE);
+  t.setHours(n.getHours(), n.getMinutes(), n.getSeconds());
+  return t;
+}
+
+const now0 = clock();
 const YEAR = now0.getMonth() === 11 ? now0.getFullYear() + 1 : now0.getFullYear();
 const DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const FIRST_OFFSET = (new Date(YEAR, 9, 1).getDay() + 6) % 7; // Monday-first
@@ -46,15 +63,15 @@ let state = blank();
 
 /* ---------- date helpers ---------- */
 const pad = n => String(n).padStart(2,"0");
-const isoToday = () => { const n = new Date(); return `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`; };
+const isoToday = () => { const n = clock(); return `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`; };
 function todayIndex(){ // 0 = before October, 1..31 in October, 32 = after
-  const n = new Date();
+  const n = clock();
   if (n.getFullYear() < YEAR || (n.getFullYear()===YEAR && n.getMonth() < 9)) return 0;
   if (n.getFullYear()===YEAR && n.getMonth()===9) return n.getDate();
   return 32;
 }
 function daysUntilStart(){
-  const n = new Date(); const a = new Date(n.getFullYear(),n.getMonth(),n.getDate()); const b = new Date(YEAR,9,1);
+  const n = clock(); const a = new Date(n.getFullYear(),n.getMonth(),n.getDate()); const b = new Date(YEAR,9,1);
   return Math.round((b-a)/864e5);
 }
 const weekday = d => new Date(YEAR,9,d).toLocaleDateString(undefined,{weekday:"long"});
@@ -117,7 +134,7 @@ function badgeSVG(shape, color){
 
 /* ---------- storage ---------- */
 // Everything lives in this browser's localStorage. Use "Download backup" to keep a copy.
-const LS_KEY = "drawtober-quest-v1";
+const LS_KEY = TEST_DATE ? "drawtober-quest-test" : "drawtober-quest-v1";
 const saveState = document.getElementById("saveState");
 function lsRead(){ try { const r = localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : null; } catch { return null; } }
 const listeners = [];
@@ -141,7 +158,7 @@ function normalise(s){
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let toastTimer;
-function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),3200); }
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),Math.max(3200,msg.length*70)); }
 const DIE_ICON = `<svg class="dieicon" viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="2" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="7" cy="7" r="1.6" fill="currentColor"/><circle cx="13" cy="13" r="1.6" fill="currentColor"/><circle cx="13" cy="7" r="1.6" fill="currentColor"/><circle cx="7" cy="13" r="1.6" fill="currentColor"/></svg>`;
 
 let selected = Math.min(Math.max(todayIndex(),1),31);
@@ -406,9 +423,28 @@ function importBackup(file){
   r.readAsText(file);
 }
 
+/* ---------- theme ---------- */
+// "auto" follows the device setting; "light"/"dark" override it. Saved per browser.
+const THEME_KEY = "drawtober-quest-theme";
+function applyTheme(choice){
+  if (choice === "light" || choice === "dark") document.documentElement.dataset.theme = choice;
+  else { choice = "auto"; delete document.documentElement.dataset.theme; }
+  document.querySelectorAll("[data-theme-choice]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.themeChoice === choice)));
+  return choice;
+}
+let themeChoice = "auto";
+try { themeChoice = localStorage.getItem(THEME_KEY) || "auto"; } catch {}
+applyTheme(themeChoice);
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-theme-choice]"); if (!b) return;
+  const choice = applyTheme(b.dataset.themeChoice);
+  try { localStorage.setItem(THEME_KEY, choice); } catch {}
+});
+
 /* ---------- bridge for sync.js ---------- */
 // sync.js (cloud sync) talks to the game only through this object.
 window.drawtoberQuest = {
+  testMode: !!TEST_DATE,
   getState: () => JSON.parse(JSON.stringify(state)),
   // Replace the game with a copy from the cloud. Doesn't notify listeners, so it won't echo back.
   replaceState(next){
@@ -420,6 +456,16 @@ window.drawtoberQuest = {
   setStatus(text){ saveState.textContent = text; },
   toast,
 };
+
+/* ---------- test mode banner ---------- */
+if (TEST_DATE){
+  const shift = n => { const d = new Date(TEST_DATE); d.setDate(d.getDate() + n); return `?date=${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+  const bar = document.createElement("div");
+  bar.className = "banner test-banner";
+  bar.innerHTML = `<span><b>Test mode:</b> pretending it's ${TEST_DATE.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}. This progress is kept separately from your real game.</span>
+    <span class="actions"><a class="linkbtn" href="${shift(-1)}">← Previous day</a><a class="linkbtn" href="${shift(1)}">Next day →</a><a class="linkbtn" href="${location.pathname}">Leave test mode</a></span>`;
+  document.querySelector(".wrap").prepend(bar);
+}
 
 /* ---------- boot ---------- */
 const local = lsRead(); if (local) state = normalise(local);

@@ -21,6 +21,10 @@ It also works on GitHub Pages: turn on Pages for this repo and point it at the m
 - **Hallowe'en:** day 31 done on the 31st gets +50.
 - **Levels:** 10, from Doodler to Drawtober Legend. **Badges:** 14.
 
+## Test mode
+
+Add `?date=YYYY-MM-DD` to the address to pretend it's that day, e.g. `index.html?date=2026-10-01`. A banner shows you're in test mode, with buttons to step a day forward or back. Test progress is saved separately from your real game (`drawtober-quest-test`), and cloud sync is off, so you can't mess up your real save. Remove `?date=…` (or click *Leave test mode*) to go back.
+
 ## Data
 
 Progress is always saved in your browser's `localStorage` under `drawtober-quest-v1`. *Download backup* / *Restore from backup* keep a copy you can move anywhere.

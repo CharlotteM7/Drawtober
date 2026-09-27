@@ -45,6 +45,7 @@ async function start(){
   const game = window.drawtoberQuest;
   const box = document.getElementById("syncBox");
   if (!firebaseConfig || !game || !box) return;
+  if (game.testMode) { box.textContent = "Cloud sync is off in test mode"; return; }
 
   let app, auth, db;
   let fb = {};
@@ -101,12 +102,16 @@ async function start(){
         await fb.signInWithRedirect(auth, provider);
         return;
       }
-      if (e?.code === "auth/unauthorized-domain") {
-        game.toast("This site isn't on your Firebase project's authorised domains yet. See the README.");
-        return;
-      }
-      console.error(e);
-      game.toast("Sign-in didn't work. Try again in a moment.");
+      console.error("Sign-in failed:", e?.code, e);
+      const help = {
+        "auth/unauthorized-domain": `Add ${location.hostname} to Firebase → Authentication → Settings → Authorised domains.`,
+        "auth/operation-not-allowed": "Turn on Google in Firebase → Authentication → Sign-in method.",
+        "auth/configuration-not-found": "Firebase Authentication isn't set up yet: open Authentication, click Get started, then enable Google.",
+        "auth/invalid-api-key": "The apiKey in firebase-config.js doesn't match your Firebase project.",
+        "auth/api-key-not-valid.-please-pass-a-valid-api-key.": "The apiKey in firebase-config.js doesn't match your Firebase project.",
+        "auth/network-request-failed": "Couldn't reach Google. Check your connection and try again.",
+      }[e?.code];
+      game.toast(help ? `Sign-in didn't work. ${help}` : `Sign-in didn't work (${e?.code || "unknown error"}).`);
     }
   }
 
