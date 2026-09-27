@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Drawtober Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div class="wrap" lang="en">
+  <header class="top">
+    <div class="brand">
+      <h1>Drawtober <span>Quest</span></h1>
+      <p id="subtitle">31 prompts, 31 drawings. Roll the dice, keep the streak, level up.</p>
+    </div>
+    <div class="account">
+      <div class="save-state" id="saveState">Loading…</div>
+      <div id="syncBox"></div>
+    </div>
+  </header>
+
+  <section class="hud" aria-label="Your progress">
+    <div class="lvl" id="lvlNum"><small>Lvl</small>1</div>
+    <div class="hud-main">
+      <div class="hud-title"><h2 id="lvlName">Doodler</h2><span class="num" id="xpText">0 XP</span></div>
+      <div class="bar" role="progressbar" aria-label="Progress to next level" id="xpBarWrap"><i id="xpBar" style="width:0%"></i></div>
+      <div class="stats">
+        <span>Streak <b id="stStreak">0</b></span>
+        <span>Best streak <b id="stBest">0</b></span>
+        <span>Drawings <b id="stDone">0</b>/31</span>
+        <span>Dice beaten <b id="stDice">0</b></span>
+        <span>Badges <b id="stBadges">0</b></span>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="card" id="dayCard" aria-live="polite"></section>
+
+    <section class="card" aria-label="October calendar">
+      <div class="card-head"><h3>October <span class="num" id="yearLbl"></span></h3><span class="label" id="calInfo"></span></div>
+      <div class="cal" id="cal"></div>
+      <div class="legend">
+        <span><i style="background:var(--accent)"></i>On time</span>
+        <span><i style="background:var(--accent-soft);border:1px solid var(--accent)"></i>Caught up</span>
+        <span><i style="border:1px dashed var(--hard)"></i>Missed</span>
+        <span><i style="box-shadow:0 0 0 2px var(--gold)"></i>Today</span>
+      </div>
+    </section>
+  </div>
+
+  <section class="card" aria-label="Badges">
+    <div class="card-head"><h3>Badges</h3><span class="label" id="badgeCount"></span></div>
+    <div class="badges" id="badges"></div>
+  </section>
+
+  <section class="card" aria-label="How scoring works">
+    <h3>How scoring works</h3>
+    <div class="xp-preview" style="font-size:14px;display:grid;gap:6px">
+      <span><b class="num">100 XP</b> for a drawing done on its day. <b class="num">60 XP</b> for catching up a missed day later.</span>
+      <span>Challenge dice add <b class="num" style="color:var(--easy)">+25</b> easy, <b class="num" style="color:var(--med)">+50</b> medium, <b class="num" style="color:var(--hard)">+75</b> hard. Roll up to two a day; each die can be rerolled once.</span>
+      <span>Streak bonus: <b class="num">+10%</b> per on-time day in a row before today, up to <b class="num">+50%</b>. Catch-ups keep your XP flowing but don't repair a broken streak.</span>
+      <span>Day 31 done on Hallowe'en earns an extra <b class="num">+50</b>.</span>
+    </div>
+  </section>
+
+  <details class="card" id="settings">
+    <summary><h3>Prompts &amp; data</h3></summary>
+    <div class="settings-body">
+      <p>Paste your Drawtober prompt list below, one prompt per line. Numbers like “1.”, “Day 1:” or “1)” are stripped. A single comma-separated line works too. Only the first 31 are used.</p>
+      <textarea id="promptInput" spellcheck="false" aria-label="Prompt list"></textarea>
+      <div class="actions">
+        <button class="btn primary" id="savePrompts">Save prompts</button>
+        <button class="btn ghost" id="resetPrompts">Use sample prompts</button>
+      </div>
+      <p>Your progress is saved in this browser. Download a backup now and then, especially before clearing browser data or switching devices.</p>
+      <div class="actions">
+        <button class="btn ghost" id="exportBtn">Download backup</button>
+        <button class="btn ghost" id="importBtn">Restore from backup</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+      </div>
+      <div class="inline-confirm" id="resetAllRow">
+        <button class="btn danger" id="resetAll">Reset all progress</button>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="app.js"></script>
+<script type="module" src="sync.js"></script>
+</body>
+</html>
